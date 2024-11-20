@@ -73,6 +73,14 @@ class Playground1Stack(Stack):
             ]
         )
 
+        dynamodb_list_tables = iam.PolicyStatement(
+            actions=[
+                "dynamodb:ListTables"
+            ],
+            resources=[
+                f"arn:aws:dynamodb:{self.region}:{self.account}:table/*"]
+        )
+
         # Create a Policy for DynamoDB access
         dynamodb_policy = iam.PolicyStatement(
             actions=[
@@ -88,16 +96,17 @@ class Playground1Stack(Stack):
 
         cloudformation_policy = iam.PolicyStatement(
             actions=[
-                'cloudformation:DescribeStacks'
+                'cloudformation:DescribeStacks',
             ],
             resources=[
-                f'arn:aws:cloudformation:us-east-1:404449475211:stack/{id}/*'
+                f'arn:aws:cloudformation:{self.region}:{self.account}:stack/{id}/*'
             ]
         )
 
         # Attach Policies to the Role
         ec2_role.add_to_policy(s3_policy)
         ec2_role.add_to_policy(dynamodb_policy)
+        ec2_role.add_to_policy(dynamodb_list_tables)
         ec2_role.add_to_policy(cloudformation_policy)
 
         # Create a Security Group for EC2
@@ -141,7 +150,8 @@ class Playground1Stack(Stack):
             'sudo -u ec2-user mkdir /home/ec2-user/code',
             'sudo -u ec2-user touch /home/ec2-user/jupyter.log',
 
-            # Configure Jupyter to allow access with predefined token
+            # Configure Jupyter to allow remote access with predefined token and password
+            'sudo -u ec2-user /home/ec2-user/.local/bin/jupyter notebook --generate-config -y',
             'echo "from jupyter_server.auth.security import passwd" > /home/ec2-user/.jupyter/jupyter_notebook_config.py',
             'echo "password = passwd(\'predefined\')" >> /home/ec2-user/.jupyter/jupyter_notebook_config.py',
             'echo "c = get_config()" >> /home/ec2-user/.jupyter/jupyter_notebook_config.py',
